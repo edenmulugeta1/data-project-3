@@ -1,0 +1,46 @@
+services:
+# kafka broker (Redpanda) 
+  redpanda:
+    image: redpandadata/redpanda:v25.1.3
+    container_name: redpanda
+    command:
+      - redpanda
+      - start
+      - --overprovisioned
+      - --smp 1
+      - --memory 512M
+      - --reserve-memory 0M
+      - --node-id 0
+      - --check=false #to skip hardware check 
+    ports:
+      - "9092:9092"     # Main Kafka API port
+      - "29092:29092"   # alternative (extra port)
+      - "18081:18081"   # http admin API
+    healthcheck:
+      test: ["CMD", "bash", "-c", "rpk cluster info || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    networks:
+      - seismic-net
+
+  # Our python application (producer.py and consumer.py run inside this container)
+  earthquake-app:
+    build: .
+    container_name: earthquake-app
+    depends_on:
+      - redpanda
+    environment:
+      KAFKA_BOOTSTRAP: "redpanda:9092"
+      KAFKA_TOPIC: "earthquakes"
+      DUCKDB_PATH: "/data/earthquakes.duckdb"
+    volumes:
+      - ./earthquake_data:/data #store DockDB file
+      - ./app_logs:/logs #for logs 
+    networks:
+      - seismic-net
+    tty: true
+
+networks:
+  seismic-net:
+    driver: bridge
