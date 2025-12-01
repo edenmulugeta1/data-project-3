@@ -43,6 +43,9 @@ def process_earthquake_data():
     # Removing rows with missing important values
     df = df.dropna(subset=['latitude', 'longitude', 'magnitude', 'time'])
 
+    #filtering out any years outside of 2020-2025 just in case
+    df = df[(df['time'] >= '2020-01-01') & (df['time'] < '2026-01-01')]
+
     # info about the data after cleaning
     print(f"Total events after cleaning: {len(df)}")
     print(df.head())
