@@ -3,3 +3,4 @@ duckdb
 pandas
 kafka-python
 python-dateutil
+kafka
