@@ -1,0 +1,6 @@
+# Ignore all data files
+/data/processed/*
+/data/raw/*
+
+# Or, if you want to keep raw JSON but ignore processed files:
+/data/processed/*
