@@ -17,7 +17,7 @@ def process_earthquake_data():
         raw_data = json.load(f)
 
     if not raw_data:
-        print("There is no data found in the JSON file.")
+        print("No data found in the JSON file.")
         return
 
     # Extracting important fields into a list of dictionaries
@@ -31,7 +31,7 @@ def process_earthquake_data():
             "longitude": props.get("Lon") or props.get("lon"),
             "depth": props.get("Depth") or props.get("depth"),
             "magnitude": props.get("Mag") or props.get("mag"),
-            "region": props.get("Flynn_region") or props.get("region")
+            "region": props.get("flynn_region") or props.get("Flynn_region") or props.get("region")
         })
 
     # Creating DataFrame from list of dictionaries
@@ -44,7 +44,7 @@ def process_earthquake_data():
     df = df.dropna(subset=['latitude', 'longitude', 'magnitude', 'time'])
 
     # info about the data after cleaning
-    print(f"Total events (after cleaning): {len(df)}")
+    print(f"Total events after cleaning: {len(df)}")
     print(df.head())
     print(df.describe())
 
@@ -57,7 +57,7 @@ def process_earthquake_data():
     con.register("events_view", df)
     con.execute("CREATE OR REPLACE TABLE earthquakes AS SELECT * FROM events_view")
     con.close()
-    print(f"Saved DuckDB: {DB_FILE}")
+    print(f"Saved DuckDB database: {DB_FILE}")
 
 if __name__ == "__main__":
     process_earthquake_data()
