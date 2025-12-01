@@ -11,6 +11,20 @@ DB_FILE = os.path.join(BASE_DIR, "..", "data", "processed", "earthquakes_2020_20
 
 os.makedirs(os.path.dirname(PARQUET_FILE), exist_ok=True)
 
+# Check database for 2019 data
+con = duckdb.connect(DB_FILE)
+try:
+    result = con.execute("SELECT MIN(EXTRACT(YEAR FROM time)) AS earliest_year FROM earthquakes").fetchone()
+    print("Earliest year in the database:", result[0])
+
+    count_2019 = con.execute("SELECT COUNT(*) FROM earthquakes WHERE EXTRACT(YEAR FROM time) = 2019").fetchone()[0]
+
+    # Remove 2019 data if it exists
+    if count_2019 > 0:
+        con.execute("DELETE FROM earthquakes WHERE EXTRACT(YEAR FROM time) = 2019")
+finally:
+    con.close()
+
 def process_earthquake_data():
     # Loading raw JSON data
     with open(RAW_JSON, "r", encoding="utf-8") as f:
@@ -43,10 +57,10 @@ def process_earthquake_data():
     # Removing rows with missing important values
     df = df.dropna(subset=['latitude', 'longitude', 'magnitude', 'time'])
 
-    #filtering out any years outside of 2020-2025 just in case
+    # Filtering out any years outside of 2020-2025 just in case
     df = df[(df['time'] >= '2020-01-01') & (df['time'] < '2026-01-01')]
 
-    # info about the data after cleaning
+    # Info about the data after cleaning
     print(f"Total events after cleaning: {len(df)}")
     print(df.head())
     print(df.describe())
@@ -55,12 +69,17 @@ def process_earthquake_data():
     df.to_parquet(PARQUET_FILE, index=False, compression="snappy")
     print(f"Saved Parquet file: {PARQUET_FILE}")
 
-    # Save data to DuckDB
+    # Append new data to DuckDB
     con = duckdb.connect(DB_FILE)
     con.register("events_view", df)
-    con.execute("CREATE OR REPLACE TABLE earthquakes AS SELECT * FROM events_view")
+    con.execute("""
+        CREATE TABLE IF NOT EXISTS earthquakes AS 
+        SELECT * FROM events_view
+    """)
+    # Insert new cleaned data
+    con.execute("INSERT INTO earthquakes SELECT * FROM events_view")
     con.close()
-    print(f"Saved DuckDB database: {DB_FILE}")
+    print(f"Updated DuckDB database: {DB_FILE}")
 
 if __name__ == "__main__":
     process_earthquake_data()
