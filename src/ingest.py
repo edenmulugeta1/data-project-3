@@ -21,14 +21,19 @@ def fetch_earthquakes(start_year=2020, end_year=2025, max_per_request=20000):
         print(f"\nFetching events for year {year}...")
 
         while True:
-            url = (
-                f"https://www.seismicportal.eu/fdsnws/event/1/query?"
-                f"starttime={starttime}&endtime={endtime}&format=json"
-                f"&limit={max_per_request}&offset={offset}"
-            )
+            params = {
+                "starttime": starttime,
+                "endtime": endtime,
+                "format": "json",
+                "limit": max_per_request,
+                "offset": offset
+            }
 
             try:
-                response = requests.get(url)
+                response = requests.get(
+                    "https://www.seismicportal.eu/fdsnws/event/1/query",
+                    params=params
+                )
                 response.raise_for_status()
                 data = response.json()
                 events = data.get("features", [])
