@@ -1,6 +1,9 @@
-websockets
-duckdb
+requests
 pandas
-kafka-python
-python-dateutil
-kafka
+numpy
+duckdb
+pyarrow
+fastparquet
+prefect
+matplotlib
+plotly
