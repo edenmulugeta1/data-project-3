@@ -1,8 +1,7 @@
-import duckdb
-import os
+import duckdb 
+import os 
 import pandas as pd
 
-# Database path
 DB_FILE = os.path.join(os.path.dirname(__file__), "..", "data", "processed", "earthquakes_2020_2025.duckdb")
 
 def analyze_earthquakes():
@@ -23,7 +22,7 @@ def analyze_earthquakes():
     print("\n- Check if counts rise, fall, or stay stable each year.\n")
 
     # 2) Top regions per year 
-    print("=== Top 10 Regions Per Year ===")
+    print(" Top 10 Regions Per Year")
     top_regions_df = con.execute("""
         SELECT year, region, quake_count FROM (
             SELECT EXTRACT(YEAR FROM time) AS year,
@@ -39,14 +38,37 @@ def analyze_earthquakes():
     """).fetchdf()
     print(top_regions_df)
 
-    # Count in how many years each region appears in the top 10
+    # 3) Consistent regions
     print("\n=== Consistently Frequent Regions (2020-2025) ===")
-    consistent_df = top_regions_df.groupby('region')['year'].nunique().reset_index(name='years_in_top10') \
-                               .query('years_in_top10 > 1')  
-    consistent_df = consistent_df.sort_values(['years_in_top10', 'region'], ascending=[False, True])
+    consistent_df = (top_regions_df.groupby('region')['year']
+                     .nunique()
+                     .reset_index(name='years_in_top10')
+                     .query('years_in_top10 > 1')
+                     .sort_values(['years_in_top10','region'], ascending=[False, True]))
     print(consistent_df)
+def analyze_seasonal_frequency():
+    con = duckdb.connect(DB_FILE)
 
+    seasonal_df = con.execute("""
+        SELECT 
+            CASE 
+                WHEN EXTRACT(MONTH FROM time) IN (12, 1, 2) THEN 'Winter'
+                WHEN EXTRACT(MONTH FROM time) IN (3, 4, 5) THEN 'Spring'
+                WHEN EXTRACT(MONTH FROM time) IN (6, 7, 8) THEN 'Summer'
+                ELSE 'Fall'
+            END AS season,
+            COUNT(*) AS quake_count
+        FROM earthquakes
+        WHERE EXTRACT(YEAR FROM time) BETWEEN 2020 AND 2025
+        GROUP BY season
+        ORDER BY quake_count DESC;
+    """).fetchdf()
 
-if __name__ == "__main__":
+    print("\n=== Earthquake Frequency by Season (2020–2025) ===")
+    print(seasonal_df)
+
+    con.close()
+
+if __name__ == "__main__": 
     analyze_earthquakes()
-
+    analyze_seasonal_frequency()
